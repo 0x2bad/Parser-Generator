@@ -8,50 +8,84 @@
 // 7. ) -> terminal
 // 8. i -> terminal
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 struct Item(usize, usize, usize);
 
-fn closure(G: &Vec<Vec<Vec<usize>>>, J: &mut Vec<Item>)
+fn closure(g: &Vec<Vec<Vec<usize>>>, j: &mut Vec<Item>)
 {
     let mut added: [bool; 10] = [false; 10];
     loop {
-        let n = J.len();
+        let n = j.len();
         for i in 0..n
         {
-            let B = G[J[i].0][J[i].1][J[i].2];
-            if added[B] == false
+            let b = g[j[i].0][j[i].1][j[i].2];
+            if added[b] == false
             {
-                added[B] = true;
-                for p in 0..G[B].len()
-                {
-                    J.push(Item(B, p, 0));
-                }
+                added[b] = true;
+                for p in 0..g[b].len() { j.push(Item(b, p, 0)); }
             }
         }
-        if n == J.len() { return; }
+        if n == j.len() { return; }
     }
 }
 
-fn goto(G: &Vec<Vec<Vec<usize>>>, J: &mut Vec<Item>, t: usize)
+fn goto(g: &Vec<Vec<Vec<usize>>>, k: &mut Vec<Item>, t: usize) -> Vec<Item>
 {
-    println!("nothing");
+    let mut j: Vec<Item> = vec![];
+
+    for i in k
+    {
+        if g[i.0][i.1][i.2] == t { j.push(*i); }
+    }
+
+    for i in &mut j { i.2 += 1; }
+
+    closure(g, &mut j);
+    return j
+}
+
+#[test]
+fn test_goto()
+{
+    let grammar: Vec<Vec<Vec<usize>>> = vec![
+        vec![vec![1, 9]],                   // S   
+        vec![vec![1, 4, 2, 9], vec![2, 9]], // E   
+        vec![vec![2, 5, 3, 9], vec![3, 9]], // T   
+        vec![vec![6, 1, 7, 9], vec![8, 9]], // F   
+        vec![], // +
+        vec![], // *
+        vec![], // (
+        vec![], // )
+        vec![], // i
+        vec![]  // end
+    ];
+    
+    // goto(I1, +) -> I6
+    let mut kernel = vec![Item(0, 0, 1), Item(1, 0, 1)];
+    let c = goto(&grammar, &mut kernel, 4);
+    assert_eq!(c[0], Item(1, 0, 2));
+    assert_eq!(c[1], Item(2, 0, 0));
+    assert_eq!(c[2], Item(2, 1, 0));
+    assert_eq!(c[3], Item(3, 0, 0));
+    assert_eq!(c[4], Item(3, 1, 0));
+    assert_eq!(5, c.len());
 }
 
 #[test]
 fn test_closure()
 {
-let grammar: Vec<Vec<Vec<usize>>> = vec![
-    vec![vec![1, 9]],                   // S   
-    vec![vec![1, 4, 2, 9], vec![2, 9]], // E   
-    vec![vec![2, 5, 3, 9], vec![3, 9]], // T   
-    vec![vec![6, 1, 7, 9], vec![8, 9]], // F   
-    vec![], // +
-    vec![], // *
-    vec![], // (
-    vec![], // )
-    vec![], // i
-    vec![]  // end
-];
+    let grammar: Vec<Vec<Vec<usize>>> = vec![
+        vec![vec![1, 9]],                   // S   
+        vec![vec![1, 4, 2, 9], vec![2, 9]], // E   
+        vec![vec![2, 5, 3, 9], vec![3, 9]], // T   
+        vec![vec![6, 1, 7, 9], vec![8, 9]], // F   
+        vec![], // +
+        vec![], // *
+        vec![], // (
+        vec![], // )
+        vec![], // i
+        vec![]  // end
+    ];
 
     // I0
     let mut kernel = vec![Item(0, 0, 0)];
@@ -154,8 +188,4 @@ let grammar: Vec<Vec<Vec<usize>>> = vec![
 
 fn main()
 {
-    let mut v1 = vec![1, 2, 3];
-    let v2 = vec![4, 6, 8];
-    v1.extend(v2);
-
 }
