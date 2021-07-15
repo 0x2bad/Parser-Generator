@@ -11,8 +11,9 @@
 #[derive(Debug, PartialEq, Copy, Clone)]
 struct Item(usize, usize, usize);
 
-fn closure(g: &Vec<Vec<Vec<usize>>>, j: &mut Vec<Item>)
+fn closure(g: &Vec<Vec<Vec<usize>>>, kernel: &Vec<Item>) -> Vec<Item>
 {
+    let mut j = kernel.to_vec();
     let mut added: [bool; 10] = [false; 10];
     loop {
         let n = j.len();
@@ -25,7 +26,7 @@ fn closure(g: &Vec<Vec<Vec<usize>>>, j: &mut Vec<Item>)
                 for p in 0..g[b].len() { j.push(Item(b, p, 0)); }
             }
         }
-        if n == j.len() { return; }
+        if n == j.len() { return j; }
     }
 }
 
@@ -40,8 +41,7 @@ fn goto(g: &Vec<Vec<Vec<usize>>>, k: &mut Vec<Item>, t: usize) -> Vec<Item>
 
     for i in &mut j { i.2 += 1; }
 
-    closure(g, &mut j);
-    return j
+    return closure(g, &j);
 }
 
 #[test]
@@ -88,102 +88,102 @@ fn test_closure()
     ];
 
     // I0
-    let mut kernel = vec![Item(0, 0, 0)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(0, 0, 0));
-    assert_eq!(kernel[1], Item(1, 0, 0));
-    assert_eq!(kernel[2], Item(1, 1, 0));
-    assert_eq!(kernel[3], Item(2, 0, 0));
-    assert_eq!(kernel[4], Item(2, 1, 0));
-    assert_eq!(kernel[5], Item(3, 0, 0));
-    assert_eq!(kernel[6], Item(3, 1, 0));
-    assert_eq!(7, kernel.len());
+    let kernel = vec![Item(0, 0, 0)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(0, 0, 0));
+    assert_eq!(c[1], Item(1, 0, 0));
+    assert_eq!(c[2], Item(1, 1, 0));
+    assert_eq!(c[3], Item(2, 0, 0));
+    assert_eq!(c[4], Item(2, 1, 0));
+    assert_eq!(c[5], Item(3, 0, 0));
+    assert_eq!(c[6], Item(3, 1, 0));
+    assert_eq!(7, c.len());
 
     // I1
-    let mut kernel = vec![Item(0, 0, 1), Item(1, 0, 1)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(0, 0, 1));
-    assert_eq!(kernel[1], Item(1, 0, 1));
-    assert_eq!(2, kernel.len());
+    let kernel = vec![Item(0, 0, 1), Item(1, 0, 1)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(0, 0, 1));
+    assert_eq!(c[1], Item(1, 0, 1));
+    assert_eq!(2, c.len());
 
     // I2
-    let mut kernel = vec![Item(1, 1, 1), Item(2, 0, 1)];
-    closure(&grammar, &mut kernel);
+    let kernel = vec![Item(1, 1, 1), Item(2, 0, 1)];
+    let c = closure(&grammar, &kernel);
 
-    assert_eq!(kernel[0], Item(1, 1, 1));
-    assert_eq!(kernel[1], Item(2, 0, 1));
-    assert_eq!(2, kernel.len());
+    assert_eq!(c[0], Item(1, 1, 1));
+    assert_eq!(c[1], Item(2, 0, 1));
+    assert_eq!(2, c.len());
 
     // I3
-    let mut kernel = vec![Item(2, 1, 1)];
-    closure(&grammar, &mut kernel);
+    let kernel = vec![Item(2, 1, 1)];
+    let c = closure(&grammar, &kernel);
 
-    assert_eq!(kernel[0], Item(2, 1, 1));
-    assert_eq!(1, kernel.len());
+    assert_eq!(c[0], Item(2, 1, 1));
+    assert_eq!(1, c.len());
 
     // I4
-    let mut kernel = vec![Item(3, 0, 1)];
-    closure(&grammar, &mut kernel);
+    let kernel = vec![Item(3, 0, 1)];
+    let c = closure(&grammar, &kernel);
 
-    assert_eq!(kernel[0], Item(3, 0, 1));
-    assert_eq!(kernel[1], Item(1, 0, 0));
-    assert_eq!(kernel[2], Item(1, 1, 0));
-    assert_eq!(kernel[3], Item(2, 0, 0));
-    assert_eq!(kernel[4], Item(2, 1, 0));
-    assert_eq!(kernel[5], Item(3, 0, 0));
-    assert_eq!(kernel[6], Item(3, 1, 0));
-    assert_eq!(7, kernel.len());
+    assert_eq!(c[0], Item(3, 0, 1));
+    assert_eq!(c[1], Item(1, 0, 0));
+    assert_eq!(c[2], Item(1, 1, 0));
+    assert_eq!(c[3], Item(2, 0, 0));
+    assert_eq!(c[4], Item(2, 1, 0));
+    assert_eq!(c[5], Item(3, 0, 0));
+    assert_eq!(c[6], Item(3, 1, 0));
+    assert_eq!(7, c.len());
     
     // I5
-    let mut kernel = vec![Item(3, 1, 1)];
-    closure(&grammar, &mut kernel);
+    let kernel = vec![Item(3, 1, 1)];
+    let c = closure(&grammar, &kernel);
 
-    assert_eq!(kernel[0], Item(3, 1, 1));
-    assert_eq!(1, kernel.len());
+    assert_eq!(c[0], Item(3, 1, 1));
+    assert_eq!(1, c.len());
 
     // I6
-    let mut kernel = vec![Item(1, 0, 2)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(1, 0, 2));
-    assert_eq!(kernel[1], Item(2, 0, 0));
-    assert_eq!(kernel[2], Item(2, 1, 0));
-    assert_eq!(kernel[3], Item(3, 0, 0));
-    assert_eq!(kernel[4], Item(3, 1, 0));
-    assert_eq!(5, kernel.len());
+    let kernel = vec![Item(1, 0, 2)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(1, 0, 2));
+    assert_eq!(c[1], Item(2, 0, 0));
+    assert_eq!(c[2], Item(2, 1, 0));
+    assert_eq!(c[3], Item(3, 0, 0));
+    assert_eq!(c[4], Item(3, 1, 0));
+    assert_eq!(5, c.len());
 
     // I7
-    let mut kernel = vec![Item(2, 0, 2)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(2, 0, 2));
-    assert_eq!(kernel[1], Item(3, 0, 0));
-    assert_eq!(kernel[2], Item(3, 1, 0));
-    assert_eq!(3, kernel.len());
+    let kernel = vec![Item(2, 0, 2)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(2, 0, 2));
+    assert_eq!(c[1], Item(3, 0, 0));
+    assert_eq!(c[2], Item(3, 1, 0));
+    assert_eq!(3, c.len());
 
     // I8
-    let mut kernel = vec![Item(1, 0, 1), Item(3, 0, 2)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(1, 0, 1));
-    assert_eq!(kernel[1], Item(3, 0, 2));
-    assert_eq!(2, kernel.len());
+    let kernel = vec![Item(1, 0, 1), Item(3, 0, 2)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(1, 0, 1));
+    assert_eq!(c[1], Item(3, 0, 2));
+    assert_eq!(2, c.len());
 
     // I9
-    let mut kernel = vec![Item(1, 0, 3), Item(2, 0, 1)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(1, 0, 3));
-    assert_eq!(kernel[1], Item(2, 0, 1));
-    assert_eq!(2, kernel.len());
+    let kernel = vec![Item(1, 0, 3), Item(2, 0, 1)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(1, 0, 3));
+    assert_eq!(c[1], Item(2, 0, 1));
+    assert_eq!(2, c.len());
 
     // I10
-    let mut kernel = vec![Item(2, 0, 3)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(2, 0, 3));
-    assert_eq!(1, kernel.len());
+    let kernel = vec![Item(2, 0, 3)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(2, 0, 3));
+    assert_eq!(1, c.len());
 
     // I11
-    let mut kernel = vec![Item(3, 0, 3)];
-    closure(&grammar, &mut kernel);
-    assert_eq!(kernel[0], Item(3, 0, 3));
-    assert_eq!(1, kernel.len());
+    let kernel = vec![Item(3, 0, 3)];
+    let c = closure(&grammar, &kernel);
+    assert_eq!(c[0], Item(3, 0, 3));
+    assert_eq!(1, c.len());
 }
 
 fn main()
