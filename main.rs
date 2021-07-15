@@ -30,13 +30,14 @@ fn closure(g: &Vec<Vec<Vec<usize>>>, kernel: &Vec<Item>) -> Vec<Item>
     }
 }
 
-fn goto(g: &Vec<Vec<Vec<usize>>>, k: &mut Vec<Item>, t: usize) -> Vec<Item>
+fn goto(g: &Vec<Vec<Vec<usize>>>, k: &Vec<Item>, t: usize) -> Vec<Item>
 {
     let mut j: Vec<Item> = vec![];
+    let l = closure(g, k);
 
-    for i in k
+    for i in l
     {
-        if g[i.0][i.1][i.2] == t { j.push(*i); }
+        if g[i.0][i.1][i.2] == t { j.push(i); }
     }
 
     for i in &mut j { i.2 += 1; }
@@ -59,10 +60,25 @@ fn test_goto()
         vec![], // i
         vec![]  // end
     ];
+
+    let mut kernel = vec![Item(0, 0, 0)];
+
+    // goto(I0, E) -> I1
+    let c = goto(&grammar, &kernel, 1);
+    assert_eq!(c[0], Item(0, 0, 1));
+    assert_eq!(c[1], Item(1, 0, 1));
+    assert_eq!(2, c.len());
+
+    // goto(I0, T) -> I2
+    let c = goto(&grammar, &kernel, 2);
+    assert_eq!(c[0], Item(1, 1, 1));
+    assert_eq!(c[1], Item(2, 0, 1));
+    assert_eq!(2, c.len());
+
     
     // goto(I1, +) -> I6
     let mut kernel = vec![Item(0, 0, 1), Item(1, 0, 1)];
-    let c = goto(&grammar, &mut kernel, 4);
+    let c = goto(&grammar, &kernel, 4);
     assert_eq!(c[0], Item(1, 0, 2));
     assert_eq!(c[1], Item(2, 0, 0));
     assert_eq!(c[2], Item(2, 1, 0));
@@ -188,4 +204,9 @@ fn test_closure()
 
 fn main()
 {
+    let v1 = vec![Item(4, 5, 3)];
+    let v2 = vec![Item(4, 5, 3)];
+    if v1 != v2 {
+        println!("not equal");
+    }
 }
