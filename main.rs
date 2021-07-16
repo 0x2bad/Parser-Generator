@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Copy, Clone)]
 struct Item(usize, usize, usize);
 
 fn closure(g: &Vec<Vec<Vec<usize>>>, kernel: &Vec<Item>) -> Vec<Item>
@@ -32,9 +32,20 @@ fn goto(g: &Vec<Vec<Vec<usize>>>, k: &Vec<Item>, t: usize) -> Vec<Item>
 
     for i in &mut j { i.2 += 1; }
 
-    return closure(g, &j);
+    return j;
 }
 
+/*
+fn items(g: &Vec<Vec<Vec<usize>>>)
+{
+    let c = closure(g, Item(258, 0, 0));
+    let n = c.len();
+    for i in 0..n
+    {
+        
+    }
+}
+*/
 /* Terminals */
 // 40. ( -> terminal
 // 41. ) -> terminal
@@ -82,13 +93,7 @@ fn test_goto()
         // goto(I0, '(') -> I4
         let c = goto(&grammar, &kernel, 40);
         assert_eq!(c[0], Item(261, 0, 1));
-        assert_eq!(c[1], Item(259, 0, 0));
-        assert_eq!(c[2], Item(259, 1, 0));
-        assert_eq!(c[3], Item(260, 0, 0));
-        assert_eq!(c[4], Item(260, 1, 0));
-        assert_eq!(c[5], Item(261, 0, 0));
-        assert_eq!(c[6], Item(261, 1, 0));
-        assert_eq!(7, c.len());
+        assert_eq!(1, c.len());
 
         // goto(I0, i) -> I5
         let c = goto(&grammar, &kernel, 105);
@@ -118,11 +123,7 @@ fn test_goto()
         // goto(I1, +) -> I6
         let c = goto(&grammar, &kernel, 43);
         assert_eq!(c[0], Item(259, 0, 2));
-        assert_eq!(c[1], Item(260, 0, 0));
-        assert_eq!(c[2], Item(260, 1, 0));
-        assert_eq!(c[3], Item(261, 0, 0));
-        assert_eq!(c[4], Item(261, 1, 0));
-        assert_eq!(5, c.len());
+        assert_eq!(1, c.len());
     }
 }
 
@@ -238,9 +239,8 @@ fn test_closure()
 
 fn main()
 {
-    let v1 = vec![Item(4, 5, 3)];
-    let v2 = vec![Item(4, 5, 3)];
-    if v1 != v2 {
-        println!("not equal");
-    }
+    let r = vec![5, 3, 67, 33, 65];
+
+    println!("{:?}", r.iter().find(|&&x| x == 33));
+    println!("{:?}", r);
 }
