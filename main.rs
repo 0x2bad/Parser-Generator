@@ -1,63 +1,67 @@
-
-
-#[derive(Eq, PartialEq, PartialOrd, Ord, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Copy, Clone)]
 struct Item(usize, usize, usize);
 
-fn closure(g: &Vec<Vec<Vec<usize>>>, kernel: &Vec<Item>) -> Vec<Item>
-{
-    let mut j = kernel.to_vec();
-    let mut added = vec![false; g.len()];
-    loop
-    {
-        let n = j.len();
-        for i in 0..n
-        {
-            let b = g[j[i].0][j[i].1][j[i].2];
-            if added[b] == false
-            {// item can be added since not found
-                added[b] = true;
-                for p in 0..g[b].len() { j.push(Item(b, p, 0)); }
-            }
-        }
-        if n == j.len() { return j; }
-    }
+struct Parser {
+    g: Vec<Vec<Vec<usize>>>,
 }
 
-fn goto(g: &Vec<Vec<Vec<usize>>>, k: &Vec<Item>, t: usize) -> Vec<Item>
-{
-    let mut j: Vec<Item> = vec![];
-
-    for i in k
+impl Parser {
+    fn closure(&self, kernel: &Vec<Item>) -> Vec<Item>
     {
-        if g[i.0][i.1][i.2] == t { j.push(*i); }
-    }
-
-    for i in &mut j { i.2 += 1; }
-
-    return closure(g, &j);
-}
-
-fn items(g: &Vec<Vec<Vec<usize>>>) -> Vec<Vec<Item>>
-{
-    let mut c = vec![closure(g, &vec![Item(257, 0, 0)])];
-    loop
-    {
-        let n = c.len();
-        for i in 0..n
+        let mut j = kernel.to_vec();
+        let mut added = vec![false; self.g.len()];
+        loop
         {
-            for j in 0..g.len() - 1
+            let n = j.len();
+            for i in 0..n
             {
-                let mut r = goto(g, &c[i], j);
-                if ! r.is_empty()
-                {
-                    r.sort_unstable();
-                    if let Err(idx) = c.binary_search(&r)
-                    {   c.insert(idx, r);   }
+                let b = self.g[j[i].0][j[i].1][j[i].2];
+                if added[b] == false
+                {// item can be added since not found
+                    added[b] = true;
+                    for p in 0..self.g[b].len() { j.push(Item(b, p, 0)); }
                 }
             }
+            if n == j.len() { return j; }
         }
-        if n == c.len()
-        {   return c   };
+    }
+
+    fn goto(&self, k: &Vec<Item>, t: usize) -> Vec<Item>
+    {
+        let mut j: Vec<Item> = vec![];
+
+        for i in k
+        {
+            if self.g[i.0][i.1][i.2] == t { j.push(*i); }
+        }
+
+        for i in &mut j { i.2 += 1; }
+
+        return self.closure(&j);
+    }
+
+    fn items(&self) -> Vec<Vec<Item>>
+    {
+        let mut c = vec![self.closure(&vec![Item(257, 0, 0)])];
+        loop
+        {
+            let n = c.len();
+            for i in 0..n
+            {
+                for j in 0..self.g.len() - 1
+                {
+                    let mut r = self.goto(&c[i], j);
+                    if ! r.is_empty()
+                    {
+                        r.sort_unstable();
+                        if let Err(idx) = c.binary_search(&r)
+                        {   c.insert(idx, r);   }
+                    }
+                }
+            }
+            if n == c.len()
+            {   return c   };
+        }
     }
 }
 
@@ -86,8 +90,13 @@ fn test_items()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
-    let c = items(&grammar);
+    let p = Parser {
+        g: grammar,
+    };
 
+    let c = p.items();
+
+    // I still need to work on this
     for i in c
     {
         println!("{:?}", i);
@@ -104,28 +113,32 @@ fn test_goto()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
+    let p = Parser {
+        g: grammar,
+    };
+
     {// I0
         let kernel = vec![Item(S, 0, 0)];
 
         // goto(I0, E) -> I1
-        let c = goto(&grammar, &closure(&grammar, &kernel), E);
+        let c = p.goto(&p.closure(&kernel), E);
         assert_eq!(c[0], Item(S, 0, 1));
         assert_eq!(c[1], Item(E, 0, 1));
         assert_eq!(2, c.len());
 
         // goto(I0, T) -> I2
-        let c = goto(&grammar, &closure(&grammar, &kernel), T);
+        let c = p.goto(&p.closure(&kernel), T);
         assert_eq!(c[0], Item(E, 1, 1));
         assert_eq!(c[1], Item(T, 0, 1));
         assert_eq!(2, c.len());
 
         // goto(I0, F) -> I3
-        let c = goto(&grammar, &closure(&grammar, &kernel), F);
+        let c = p.goto(&p.closure(&kernel), F);
         assert_eq!(c[0], Item(T, 1, 1));
         assert_eq!(1, c.len());
 
         // goto(I0, '(') -> I4
-        let c = goto(&grammar, &closure(&grammar, &kernel), LP);
+        let c = p.goto(&p.closure(&kernel), LP);
         assert_eq!(c[0], Item(F, 0, 1));
         assert_eq!(c[1], Item(E, 0, 0));
         assert_eq!(c[2], Item(E, 1, 0));
@@ -136,24 +149,24 @@ fn test_goto()
         assert_eq!(7, c.len());
 
         // goto(I0, i) -> I5
-        let c = goto(&grammar, &closure(&grammar, &kernel), ID);
+        let c = p.goto(&p.closure(&kernel), ID);
         assert_eq!(c[0], Item(F, 1, 1));
         assert_eq!(1, c.len());
 
         // goto(I0, +) -> null
-        let c = goto(&grammar, &closure(&grammar, &kernel), ADD);
+        let c = p.goto(&p.closure(&kernel), ADD);
         assert_eq!(0, c.len());
 
         // goto(I0, *) -> null
-        let c = goto(&grammar, &closure(&grammar, &kernel), MULT);
+        let c = p.goto(&p.closure(&kernel), MULT);
         assert_eq!(0, c.len());
 
         // goto(I0, ')') -> null
-        let c = goto(&grammar, &closure(&grammar, &kernel), RP);
+        let c = p.goto(&p.closure(&kernel), RP);
         assert_eq!(0, c.len());
 
         // goto(I0, $) -> null
-        let c = goto(&grammar, &closure(&grammar, &kernel), ACCEPT);
+        let c = p.goto(&p.closure(&kernel), ACCEPT);
         assert_eq!(0, c.len());
     }
     
@@ -161,7 +174,7 @@ fn test_goto()
         let kernel = vec![Item(S, 0, 1), Item(E, 0, 1)];
 
         // goto(I1, +) -> I6
-        let c = goto(&grammar, &closure(&grammar, &kernel), ADD);
+        let c = p.goto(&p.closure(&kernel), ADD);
         assert_eq!(c[0], Item(E, 0, 2));
         assert_eq!(c[1], Item(T, 0, 0));
         assert_eq!(c[2], Item(T, 1, 0));
@@ -169,10 +182,8 @@ fn test_goto()
         assert_eq!(c[4], Item(F, 1, 0));
         assert_eq!(5, c.len());
 
-
     }
 }
-
 static ACCEPT: usize = 256;
 static S: usize = 257;
 static E: usize = 258;
@@ -195,9 +206,13 @@ fn test_closure()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
+    let p = Parser {
+        g: grammar,
+    };
+
     // I0
     let kernel = vec![Item(S, 0, 0)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(S, 0, 0));
     assert_eq!(c[1], Item(E, 0, 0));
     assert_eq!(c[2], Item(E, 1, 0));
@@ -210,14 +225,14 @@ fn test_closure()
 
     // I1
     let kernel = vec![Item(S, 0, 1), Item(E, 0, 1)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(S, 0, 1));
     assert_eq!(c[1], Item(E, 0, 1));
     assert_eq!(2, c.len());
 
     // I2
     let kernel = vec![Item(E, 1, 1), Item(T, 0, 1)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
 
     assert_eq!(c[0], Item(E, 1, 1));
     assert_eq!(c[1], Item(T, 0, 1));
@@ -225,14 +240,14 @@ fn test_closure()
 
     // I3
     let kernel = vec![Item(T, 1, 1)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
 
     assert_eq!(c[0], Item(T, 1, 1));
     assert_eq!(1, c.len());
 
     // I4
     let kernel = vec![Item(F, 0, 1)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
 
     assert_eq!(c[0], Item(F, 0, 1));
     assert_eq!(c[1], Item(E, 0, 0));
@@ -245,14 +260,14 @@ fn test_closure()
     
     // I5
     let kernel = vec![Item(F, 1, 1)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
 
     assert_eq!(c[0], Item(F, 1, 1));
     assert_eq!(1, c.len());
 
     // I6
     let kernel = vec![Item(E, 0, 2)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(E, 0, 2));
     assert_eq!(c[1], Item(T, 0, 0));
     assert_eq!(c[2], Item(T, 1, 0));
@@ -262,7 +277,7 @@ fn test_closure()
 
     // I7
     let kernel = vec![Item(T, 0, 2)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(T, 0, 2));
     assert_eq!(c[1], Item(F, 0, 0));
     assert_eq!(c[2], Item(F, 1, 0));
@@ -270,27 +285,27 @@ fn test_closure()
 
     // I8
     let kernel = vec![Item(E, 0, 1), Item(F, 0, 2)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(E, 0, 1));
     assert_eq!(c[1], Item(F, 0, 2));
     assert_eq!(2, c.len());
 
     // I9
     let kernel = vec![Item(E, 0, 3), Item(T, 0, 1)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(E, 0, 3));
     assert_eq!(c[1], Item(T, 0, 1));
     assert_eq!(2, c.len());
 
     // I10
     let kernel = vec![Item(T, 0, 3)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(T, 0, 3));
     assert_eq!(1, c.len());
 
     // I11
     let kernel = vec![Item(F, 0, 3)];
-    let c = closure(&grammar, &kernel);
+    let c = p.closure(&kernel);
     assert_eq!(c[0], Item(F, 0, 3));
     assert_eq!(1, c.len());
 }
@@ -317,7 +332,11 @@ fn main()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
-    let c = items(&grammar);
+    let p = Parser {
+        g: grammar,
+    };
+
+    let c = p.items();
 
     for i in 0..c.len()
     {
