@@ -1,4 +1,6 @@
-#[derive(Debug, Eq, PartialEq, PartialOrd, Ord, Copy, Clone)]
+
+
+#[derive(Eq, PartialEq, PartialOrd, Ord, Copy, Clone)]
 struct Item(usize, usize, usize);
 
 fn closure(g: &Vec<Vec<Vec<usize>>>, kernel: &Vec<Item>) -> Vec<Item>
@@ -35,17 +37,15 @@ fn goto(g: &Vec<Vec<Vec<usize>>>, k: &Vec<Item>, t: usize) -> Vec<Item>
     return closure(g, &j);
 }
 
-
 fn items(g: &Vec<Vec<Vec<usize>>>) -> Vec<Vec<Item>>
 {
     let mut c = vec![closure(g, &vec![Item(257, 0, 0)])];
     loop
     {
-        println!("in loop");
         let n = c.len();
         for i in 0..n
         {
-            for j in 0..g.len()
+            for j in 0..g.len() - 1
             {
                 let mut r = goto(g, &c[i], j);
                 if ! r.is_empty()
@@ -61,7 +61,6 @@ fn items(g: &Vec<Vec<Vec<usize>>>) -> Vec<Vec<Item>>
     }
 }
 
-
 /* Terminals */
 // 40. ( -> terminal
 // 41. ) -> terminal
@@ -70,12 +69,31 @@ fn items(g: &Vec<Vec<Vec<usize>>>) -> Vec<Vec<Item>>
 // 105. i -> terminal
 
 /* Non-Terminals */
-// 256. null -> 
-// 257. $ -> accept
-// 258. S -> E $
-// 259. E -> E + T | T
-// 260. T -> T * F | F
-// 261. F -> ( E ) | i
+// 258. $ -> accept
+// 259. S -> E $
+// 260. E -> E + T | T
+// 259. T -> T * F | F
+// 260. F -> ( E ) | i
+// 261. null -> 
+
+#[test]
+fn test_items()
+{
+    let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
+
+    grammar[S] = vec![vec![E, END]];
+    grammar[E] = vec![vec![E, ADD, T, END], vec![T, END]];
+    grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
+    grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+
+    let c = items(&grammar);
+
+    for i in c
+    {
+        println!("{:?}", i);
+    }
+}
+
 #[test]
 fn test_goto()
 {
@@ -155,12 +173,12 @@ fn test_goto()
     }
 }
 
-static END: usize = 256;
-static ACCEPT: usize = 257;
-static S: usize = 258;
-static E: usize = 259;
-static T: usize = 260;
-static F: usize = 261;
+static ACCEPT: usize = 256;
+static S: usize = 257;
+static E: usize = 258;
+static T: usize = 259;
+static F: usize = 260;
+static END: usize = 261;
 static LP: usize = 40;
 static RP: usize = 41;
 static MULT: usize = 42;
@@ -277,10 +295,63 @@ fn test_closure()
     assert_eq!(1, c.len());
 }
 
+use std::fmt;
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, between {})", self.x, self.y)
+    }
+}
+
 fn main()
 {
-    let r = vec![5, 3, 67, 33, 65];
+    let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
 
-    println!("{:?}", r.iter().find(|&&x| x == 33));
-    println!("{:?}", r);
+    grammar[S] = vec![vec![E, ACCEPT, END]];
+    grammar[E] = vec![vec![E, ADD, T, END], vec![T, END]];
+    grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
+    grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+
+    let c = items(&grammar);
+
+    for i in 0..c.len()
+    {
+        println!("I{}:", i);
+        for j in &c[i]
+        {
+            println!("\t{}", j);
+        }
+    }
 }
+
+fn token(n: usize) -> String
+{
+    match n {
+        40 => "'('".to_string(),
+        41 => "')'".to_string(),
+        42 => "*".to_string(),
+        43 => "+".to_string(),
+        105 => "i".to_string(),
+        256 => "$".to_string(),
+        257 => "S".to_string(),
+        258 => "E".to_string(),
+        259 => "T".to_string(),
+        260 => "F".to_string(),
+        261 => "NULL".to_string(),
+        _ => n.to_string(),
+    }
+}
+
+impl fmt::Display for Item {
+
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        write!(f, "Item({}, {}, {})", token(self.0), token(self.1), token(self.2))
+    }
+}
+
