@@ -2,24 +2,45 @@
 struct Item(usize, usize, usize);
 
 struct Parser {
-    g: Vec<Vec<Vec<usize>>>,
+    lr: Vec<Vec<Vec<usize>>>,
+    rr: Vec<Vec<Vec<usize>>>,
 }
 
-impl Parser {
+impl Parser
+{
+    fn first_rec(&self, t: usize) -> Vec<usize>
+    {
+        if self.rr[t].is_empty()
+        {   return vec![t];   }
+
+        let mut r = vec![];
+        for i in &self.rr[t]
+        {   r.append(&mut self.first_rec(i[0]));   }
+        return r;
+    }
+
+    fn first(&self, t: usize) -> Vec<usize>
+    {
+        let mut f = self.first_rec(t);
+        f.sort_unstable();
+        f.dedup();
+        return f;
+    }
+
     fn closure(&self, kernel: &Vec<Item>) -> Vec<Item>
     {
         let mut j = kernel.to_vec();
-        let mut added = vec![false; self.g.len()];
+        let mut added = vec![false; self.lr.len()];
         loop
         {
             let n = j.len();
             for i in 0..n
             {
-                let b = self.g[j[i].0][j[i].1][j[i].2];
+                let b = self.lr[j[i].0][j[i].1][j[i].2];
                 if added[b] == false
                 {// item can be added since not found
                     added[b] = true;
-                    for p in 0..self.g[b].len() { j.push(Item(b, p, 0)); }
+                    for p in 0..self.lr[b].len() { j.push(Item(b, p, 0)); }
                 }
             }
             if n == j.len() { return j; }
@@ -32,7 +53,7 @@ impl Parser {
 
         for i in k
         {
-            if self.g[i.0][i.1][i.2] == t { j.push(*i); }
+            if self.lr[i.0][i.1][i.2] == t { j.push(*i); }
         }
 
         for i in &mut j { i.2 += 1; }
@@ -48,7 +69,7 @@ impl Parser {
             let n = c.len();
             for i in 0..n
             {
-                for j in 0..self.g.len() - 1
+                for j in 0..self.lr.len() - 1
                 {
                     let mut r = self.goto(&c[i], j);
                     if ! r.is_empty()
@@ -81,6 +102,46 @@ impl Parser {
 // 261. null -> 
 
 #[test]
+fn test_first()
+{
+    let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
+
+    grammar[S] = vec![vec![E, END]];
+    grammar[E] = vec![vec![E, ADD, T, END], vec![T, END]];
+    grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
+    grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+
+    let mut grammar2: Vec<Vec<Vec<usize>>> = vec![vec![]; 264];
+
+    grammar2[S] = vec![vec![E, ACCEPT, END]];
+    grammar2[E] = vec![vec![T, E2, END]];
+    grammar2[T] = vec![vec![F, T2, END]];
+    grammar2[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+    grammar2[E2] = vec![vec![END], vec![ADD, T, E2, END]];
+    grammar2[T2] = vec![vec![END], vec![MULT, F, T2, END]];
+
+    let p = Parser {
+        lr: grammar,
+        rr: grammar2,
+    };
+
+    let f = p.first(E);
+    assert_eq!(f, vec![LP, ID]);
+
+    let f = p.first(T);
+    assert_eq!(f, vec![LP, ID]);
+
+    let f = p.first(E2);
+    assert_eq!(f, vec![ADD, END]);
+
+    let f = p.first(T2);
+    assert_eq!(f, vec![MULT, END]);
+
+    let f = p.first(ADD);
+    assert_eq!(f, vec![ADD]);
+}
+
+#[test]
 fn test_items()
 {
     let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
@@ -90,8 +151,18 @@ fn test_items()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
+    let mut grammar2: Vec<Vec<Vec<usize>>> = vec![vec![]; 264];
+
+    grammar2[S] = vec![vec![E, ACCEPT, END]];
+    grammar2[E] = vec![vec![T, E2, END]];
+    grammar2[T] = vec![vec![F, T2, END]];
+    grammar2[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+    grammar2[E2] = vec![vec![END], vec![ADD, T, E2, END]];
+    grammar2[T2] = vec![vec![END], vec![MULT, F, T2, END]];
+
     let p = Parser {
-        g: grammar,
+        lr: grammar,
+        rr: grammar2,
     };
 
     let c = p.items();
@@ -113,8 +184,18 @@ fn test_goto()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
+    let mut grammar2: Vec<Vec<Vec<usize>>> = vec![vec![]; 264];
+
+    grammar2[S] = vec![vec![E, ACCEPT, END]];
+    grammar2[E] = vec![vec![T, E2, END]];
+    grammar2[T] = vec![vec![F, T2, END]];
+    grammar2[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+    grammar2[E2] = vec![vec![END], vec![ADD, T, E2, END]];
+    grammar2[T2] = vec![vec![END], vec![MULT, F, T2, END]];
+
     let p = Parser {
-        g: grammar,
+        lr: grammar,
+        rr: grammar2,
     };
 
     {// I0
@@ -184,12 +265,15 @@ fn test_goto()
 
     }
 }
+
 static ACCEPT: usize = 256;
 static S: usize = 257;
 static E: usize = 258;
 static T: usize = 259;
 static F: usize = 260;
 static END: usize = 261;
+static E2: usize = 262;
+static T2: usize = 263;
 static LP: usize = 40;
 static RP: usize = 41;
 static MULT: usize = 42;
@@ -206,8 +290,18 @@ fn test_closure()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
+    let mut grammar2: Vec<Vec<Vec<usize>>> = vec![vec![]; 264];
+
+    grammar2[S] = vec![vec![E, ACCEPT, END]];
+    grammar2[E] = vec![vec![T, E2, END]];
+    grammar2[T] = vec![vec![F, T2, END]];
+    grammar2[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+    grammar2[E2] = vec![vec![END], vec![ADD, T, E2, END]];
+    grammar2[T2] = vec![vec![END], vec![MULT, F, T2, END]];
+
     let p = Parser {
-        g: grammar,
+        lr: grammar,
+        rr: grammar2,
     };
 
     // I0
@@ -332,8 +426,18 @@ fn main()
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
 
+    let mut grammar2: Vec<Vec<Vec<usize>>> = vec![vec![]; 264];
+
+    grammar2[S] = vec![vec![E, ACCEPT, END]];
+    grammar2[E] = vec![vec![T, E2, END]];
+    grammar2[T] = vec![vec![F, T2, END]];
+    grammar2[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
+    grammar2[E2] = vec![vec![END], vec![ADD, T, E2, END]];
+    grammar2[T2] = vec![vec![END], vec![MULT, F, T2, END]];
+
     let p = Parser {
-        g: grammar,
+        lr: grammar,
+        rr: grammar2,
     };
 
     let c = p.items();
