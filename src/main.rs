@@ -27,6 +27,52 @@ impl Parser
         return f;
     }
 
+    fn generate_follow(&self) -> Vec<Vec<usize>>
+    {
+        let mut f = vec![vec![]; self.lr.len()];
+        for i in 257..self.lr.len() - 1
+        {
+            println!("token {}", token(i));
+            for j in &self.lr[i]
+            {
+                println!("new option");
+                for k in 0..j.len() - 2
+                {
+                    let fi = self.first(j[k+1]);
+                    for m in fi
+                    {
+                        if let Err(idx) = f[j[k]].binary_search(&m)
+                        {   f[j[k]].insert(idx, m);   }
+                    }
+                }
+            }
+        }
+
+        // I'm not sure if I need the 'while' loop and flag
+        // For now I'll use them to be safe
+        let mut flag = true;
+        while flag == true
+        {
+            flag = false;
+            for i in 257..self.lr.len() - 1
+            {
+                for j in &self.lr[i]
+                {// everything in f[i] goes into f[j[j.len() - 2]]
+                    for k in 0..f[i].len()
+                    {
+                        let e = f[i][k];
+                        if let Err(idx) = f[j[j.len() - 2]].binary_search(&e)
+                        {
+                            f[j[j.len() - 2]].insert(idx, e);
+                            flag = true;
+                        }
+                    }
+                }
+            }
+        }
+        return f;
+    }
+
     fn closure(&self, kernel: &Vec<Item>) -> Vec<Item>
     {
         let mut j = kernel.to_vec();
@@ -94,19 +140,19 @@ impl Parser
 // 105. i -> terminal
 
 /* Non-Terminals */
-// 258. $ -> accept
-// 259. S -> E $
-// 260. E -> E + T | T
+// 256. $ -> accept
+// 257. S -> E $
+// 258. E -> E + T | T
 // 259. T -> T * F | F
 // 260. F -> ( E ) | i
 // 261. null -> 
 
 #[test]
-fn test_first()
+fn test_first_and_follow()
 {
     let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
 
-    grammar[S] = vec![vec![E, END]];
+    grammar[S] = vec![vec![E, ACCEPT, END]];
     grammar[E] = vec![vec![E, ADD, T, END], vec![T, END]];
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
     grammar[F] = vec![vec![LP, E, RP, END], vec![ID, END]];
@@ -139,6 +185,13 @@ fn test_first()
 
     let f = p.first(ADD);
     assert_eq!(f, vec![ADD]);
+
+    let f = p.generate_follow();
+
+    assert_eq!(f[S], vec![]);
+    assert_eq!(f[E], vec![RP, ADD, ACCEPT]);
+    assert_eq!(f[T], vec![RP, MULT, ADD, ACCEPT]);
+    assert_eq!(f[F], vec![RP, MULT, ADD, ACCEPT]);
 }
 
 #[test]
@@ -177,8 +230,9 @@ fn test_items()
 #[test]
 fn test_goto()
 {
-    let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
 
+    let mut grammar: Vec<Vec<Vec<usize>>> = vec![vec![]; 262];
+  
     grammar[S] = vec![vec![E, ACCEPT, END]];
     grammar[E] = vec![vec![E, ADD, T, END], vec![T, END]];
     grammar[T] = vec![vec![T, MULT, F, END], vec![F, END]];
@@ -449,6 +503,13 @@ fn main()
         {
             println!("\t{}", j);
         }
+    }
+
+    let f = p.generate_follow();
+
+    for i in S..f.len() - 1
+    {
+        println!("{:?}", f[i]);
     }
 }
 
